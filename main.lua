@@ -38,13 +38,6 @@ getgenv().JD_REASON = shkey.reason
 -- =========================================================================
 
 local function fetch_file(path)
-	if type(isfile) == "function" and isfile(path) then
-		local ok, content = pcall(readfile, path)
-		if ok and type(content) == "string" and #content > 0 then
-			return content
-		end
-	end
-
 	if BASE_URL and BASE_URL ~= "" then
 		local url = BASE_URL .. string.gsub(path, " ", "%%20")
 		local ok, content = pcall(function()
@@ -60,6 +53,13 @@ local function fetch_file(path)
 					writefile(path, content)
 				end)
 			end
+			return content
+		end
+	end
+
+	if type(isfile) == "function" and isfile(path) then
+		local ok, content = pcall(readfile, path)
+		if ok and type(content) == "string" and #content > 0 then
 			return content
 		end
 	end
@@ -697,14 +697,6 @@ end
 
 do
 	local function libsrc(name)
-		local ok_is, has = pcall(isfile, name)
-		if ok_is and has then
-			local ok_rd, body = pcall(readfile, name)
-			if ok_rd and type(body) == "string" and #body > 0 then
-				return body
-			end
-		end
-
 		if BASE_URL and BASE_URL ~= "" then
 			local url = BASE_URL .. string.gsub(name, " ", "%%20")
 			local ok_http, body = pcall(function()
@@ -716,6 +708,14 @@ do
 						writefile(name, body)
 					end
 				end)
+				return body
+			end
+		end
+
+		local ok_is, has = pcall(isfile, name)
+		if ok_is and has then
+			local ok_rd, body = pcall(readfile, name)
+			if ok_rd and type(body) == "string" and #body > 0 then
 				return body
 			end
 		end
