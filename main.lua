@@ -1,6 +1,5 @@
 -- =========================================================================
---  SHITARO MM2 REMAKE - CLEAN UNIVERSAL EDITION
---  Full offline & custom URL support. No shitaro.lol, no backdoors.
+--  REBELLIUM MM2 - CLEAN UNIVERSAL EDITION
 -- =========================================================================
 
 -- Ссылка на твой репозиторий GitHub Raw
@@ -10,28 +9,12 @@ if BASE_URL and BASE_URL ~= "" and not string.match(BASE_URL, "/$") then
 	BASE_URL = BASE_URL .. "/"
 end
 
-if not LPH_OBFUSCATED then
-	local a = function() end
-	local g = getgenv and getgenv() or _G
-	g.LPH_ATTRIBUTES = a
-	g.ENCRYPT, g.VM, g.PRESET, g.OPTIMIZE, g.TRANSFORM, g.ERROR_HANDLING = a, a, a, a, a, a
-	g.UNROLL, g.INLINE, g.NO_UPVALUES = a, a, a
-	g.NONE, g.OPAL, g.ONYX, g.FAST, g.BALANCED, g.SECURE = a, a, a, a, a, a
-	g.EXTRACT, g.CONTROL_FLOW, g.REWRITE_NAMECALLS, g.GLOBALS, g.CONSTANTS = a, a, a, a, a
-end
-
-print("Shitaro MM2 Remake Loaded - Clean Edition")
+print("Rebellium MM2 Loaded")
 
 local shjson = game:GetService("HttpService")
 local shcontent = game:GetService("ContentProvider")
 
-local shkey = { value = "BYPASSED", alive = true, reason = "KEY_VALID" }
-function shkey.bind(fn) shkey.kill = fn end
-function shkey.stop() shkey.alive = false end
-getgenv().SHKEY = shkey
-getgenv().SCRIPT_KEY = shkey.value
-getgenv().JD_IS_PREMIUM = true
-getgenv().JD_REASON = shkey.reason
+local shkey = { alive = true, stop = function() end }
 
 -- =========================================================================
 --  UNIVERSAL FILE & ASSET LOADER (OFFLINE + GITHUB RAW FALLBACK)
@@ -680,18 +663,6 @@ if prevLib then
 	pcall(function()
 		prevLib:unload()
 	end)
-
-	getgenv().shitaroebet = nil
-end
-
-local esp = nil
-local lib = nil
-local prevLib = getgenv().shitaroebet
-
-if prevLib then
-	pcall(function()
-		prevLib:unload()
-	end)
 	getgenv().shitaroebet = nil
 end
 
@@ -793,7 +764,7 @@ local __Notification = {
 	new = function(c)
 		c = c or {}
 		lib:notify({
-			title = c.Title or "SHITARO",
+			title = c.Title or "REBELLIUM",
 			text = c.Content or "",
 			icon = art(c.Icon, "info"),
 			life = c.Duration or 5,
@@ -1197,18 +1168,18 @@ task.spawn(function()
 end)
 
 fatality:Loader({
-	Name = "SHITARO",
+	Name = "REBELLIUM",
 	Duration = 4
 });
 
 notification:Notify({
-	Title = "SHITARO",
-	Content = "yo, "..game.Players.LocalPlayer.DisplayName..' welcome back nigga',
+	Title = "REBELLIUM",
+	Content = "Welcome, " .. game.Players.LocalPlayer.DisplayName,
 	Icon = "clipboard"
 })
 
 local window = fatality.new({
-	Name = "SHITARO",
+	Name = "REBELLIUM",
 	Expire = "Never",
 });
 
@@ -1334,7 +1305,7 @@ getgenv().visualsTab = visuals
 local player_tab = window:AddMenu({
 	Name = "player",
 	Icon = "111917761312899",
-	Tip = "local penis",
+	Tip = "character settings",
 	AutoFill = false
 })
 
@@ -1348,14 +1319,14 @@ local anim_tab = window:AddMenu({
 local target_tab = window:AddMenu({
 	Name = "target",
 	Icon = "83752373575368",
-	Tip = "for niggas",
+	Tip = "target options",
 	AutoFill = false
 })
 
 local misc = window:AddMenu({
 	Name = "misc",
 	Icon = "95127553964880",
-	Tip = "idk",
+	Tip = "miscellaneous settings",
 	AutoFill = false
 })
 
@@ -4415,7 +4386,7 @@ do
 		Name = "type",
 		Default = "Basic",
 		Values = { "Basic", "Down" },
-		Flag = "farm type detka",
+		Flag = "farm_type",
 		Callback = function(v)
 			local nv = type(v) == "table" and v[1] or v
 			if nv ~= "Basic" and nv ~= "Down" then nv = "Basic" end
@@ -4432,7 +4403,7 @@ do
 	farm_tgl.Option:AddToggle({
 		Name = "murder check",
 		Default = false,
-		Flag = "bypass by shitaro ezez",
+		Flag = "farm_avoid_murder",
 		Callback = function(v)
 			avoid_murder = v
 			farm_target = nil
@@ -5108,7 +5079,7 @@ do
 			detach_original()
 			clear_created()
 			local sky = Instance.new("Sky")
-			sky.Name = "ShitaroSky"
+			sky.Name = "RebelliumSky"
 			for k, v in pairs(data) do
 				pcall(function() sky[k] = v end)
 			end
@@ -5135,7 +5106,7 @@ do
 				if not found or not skybox_on then return end
 				detach_original()
 				clear_created()
-				found.Name = "ShitaroSky"
+				found.Name = "RebelliumSky"
 				found.Parent = lighting
 				created_sky = found
 			end)
@@ -6115,7 +6086,7 @@ do
 		local function ensure_part()
 			if fx_part and fx_part.Parent then return end
 			fx_part = Instance.new("Part")
-			fx_part.Name = "SHITARO_WORLD_FX"
+			fx_part.Name = "REBELLIUM_WORLD_FX"
 			fx_part.Anchored = true
 			fx_part.CanCollide = false
 			fx_part.CanQuery = false
@@ -8776,7 +8747,7 @@ do
 		Name = "effects",
 		Position = 'right'
 	})
-	getgenv().__SHITARO_EFFECTS_SEC = kill_sec
+	getgenv().__REBELLIUM_EFFECTS_SEC = kill_sec
 
 	local murder_on, clone_on, particle_on, emitter_on, murder_col = false, false, false, false, Color3.fromRGB(255, 0, 0)
 	local particle_col = Color3.fromRGB(255, 0, 0)
@@ -9475,7 +9446,7 @@ do
 		player_roles = {}
 	end
 
-	local players_death_tgl = getgenv().__SHITARO_EFFECTS_SEC:AddToggle({
+	local players_death_tgl = getgenv().__REBELLIUM_EFFECTS_SEC:AddToggle({
 		Name = "players",
 		ToolTip = "Shows effects when any player dies (except murderer)",
 		Default = false,
@@ -9933,7 +9904,7 @@ do
 		hrp.CFrame = old
 	end
 
-	getgenv().SHITARO_TELEPORT = function(cf)
+	getgenv().REBELLIUM_TELEPORT = function(cf)
 		if typeof(cf) == "Vector3" then cf = cframe_new(cf) end
 		if typeof(cf) ~= "CFrame" then return false end
 		local hrp = local_parts["HumanoidRootPart"]
@@ -10130,7 +10101,7 @@ do
 		return p.Position
 	end
 
-	run_service:BindToRenderStep("shitaro_fakepos_cam", Enum.RenderPriority.Camera.Value - 1, function()
+	run_service:BindToRenderStep("rebellium_fakepos_cam", Enum.RenderPriority.Camera.Value - 1, function()
 		if not fake_pos_active then return end
 		local hrp = local_parts["HumanoidRootPart"]
 		if not hrp or not local_client_position then return end
@@ -10152,7 +10123,7 @@ do
 			pcall(function() transparency_conn:Disconnect() end)
 			transparency_conn = nil
 		end
-		pcall(function() run_service:UnbindFromRenderStep("shitaro_fakepos_cam") end)
+		pcall(function() run_service:UnbindFromRenderStep("rebellium_fakepos_cam") end)
 		if char_added_conn then
 			pcall(function() char_added_conn:Disconnect() end)
 			char_added_conn = nil
@@ -12381,7 +12352,7 @@ do
 		was_jumping = jumping
 	end)
 
-	run:BindToRenderStep("shitaro_aspect", Enum.RenderPriority.Camera.Value + 1, function()
+	run:BindToRenderStep("rebellium_aspect", Enum.RenderPriority.Camera.Value + 1, function()
 		if not ratio_on then return end
 		local cam = ws.CurrentCamera
 		if cam then
@@ -12599,7 +12570,7 @@ do
 		if apply_conn then pcall(function() apply_conn:Disconnect() end) apply_conn = nil end
 		if boost_conn then pcall(function() boost_conn:Disconnect() end) boost_conn = nil end
 		if fov_conn then pcall(function() fov_conn:Disconnect() end) fov_conn = nil end
-		pcall(function() run:UnbindFromRenderStep("shitaro_aspect") end)
+		pcall(function() run:UnbindFromRenderStep("rebellium_aspect") end)
 		local hum = get_hum()
 		if hum then
 			if ws_original then pcall(function() hum.WalkSpeed = ws_original end) end
@@ -13084,7 +13055,7 @@ do
 		end
 		if added and #added > 0 and not model_hush then
 			notification:Notify({
-				Title = "SHITARO",
+				Title = "REBELLIUM",
 				Content = #added == 1 and ("Model Changer: + " .. added[1])
 					or ("Model Changer: +" .. #added .. " custom skins"),
 				Duration = 3,
@@ -13779,7 +13750,7 @@ do
 		if count == 0 then return 0 end
 
 		local rig = Instance.new("Model")
-		rig.Name = "SHITARO_R6"
+		rig.Name = "REBELLIUM_R6"
 
 		local parts = {}
 		for i = 1, #R6_SIZES do
@@ -13990,7 +13961,7 @@ do
 	local function model_build_body(def)
 		local c = lp.Character
 		if not c then
-			notification:Notify({ Title = "SHITARO", Content = "Model Changer: no character", Duration = 4, Icon = "person" })
+			notification:Notify({ Title = "REBELLIUM", Content = "Model Changer: no character", Duration = 4, Icon = "person" })
 			return
 		end
 		if type(makefolder) == "function" and type(isfolder) == "function" then
@@ -14010,7 +13981,7 @@ do
 		end
 		if applied == 0 then
 			notification:Notify({
-				Title = "SHITARO",
+				Title = "REBELLIUM",
 				Content = "Model Changer: " .. (r15 and "R15" or "R6") .. ", 0 meshes loaded",
 				Duration = 4,
 				Icon = "person"
@@ -14078,7 +14049,7 @@ do
 		local box, size = clone:GetBoundingBox()
 		local pivot_fix = (clone:GetPivot():Inverse() * box):Inverse()
 		local y_offset = size.Y * 0.5 - hrp.Size.Y * 0.5 - (hum and hum.HipHeight or 0)
-		clone.Name = "SHITARO_FAKE_MODEL"
+		clone.Name = "REBELLIUM_FAKE_MODEL"
 		clone.Parent = workspace
 		model_inst = clone
 		_G.FAKE_MODEL_RIG = clone
@@ -14979,7 +14950,7 @@ do
 		return c and (c:FindFirstChild("HumanoidRootPart") or c:FindFirstChild("Head"))
 	end
 	local function tp_root(cf)
-		if getgenv().SHITARO_TELEPORT and getgenv().SHITARO_TELEPORT(cf) then return end
+		if getgenv().REBELLIUM_TELEPORT and getgenv().REBELLIUM_TELEPORT(cf) then return end
 		local hrp = my_hrp()
 		if hrp then hrp.CFrame = cf end
 	end
@@ -15692,7 +15663,7 @@ do
 	end
 
 	local function tp_root(cf)
-		if getgenv().SHITARO_TELEPORT and getgenv().SHITARO_TELEPORT(cf) then return end
+		if getgenv().REBELLIUM_TELEPORT and getgenv().REBELLIUM_TELEPORT(cf) then return end
 		local hrp = my_hrp()
 		if hrp then hrp.CFrame = cf end
 	end
@@ -17221,7 +17192,7 @@ do
 end
 
 do
-	local tracer_section = getgenv().__SHITARO_EFFECTS_SEC or visuals:AddSection({
+	local tracer_section = getgenv().__REBELLIUM_EFFECTS_SEC or visuals:AddSection({
 		Name = "EFFECTS",
 		Position = 'right'
 	})
@@ -17478,12 +17449,12 @@ do
 		end,
 	})
 	pref:button({
-		name = "telegram",
-		icon = "send",
+		name = "github",
+		icon = "github",
 		callback = function()
 			pcall(function()
-				setclipboard("https://t.me/shitarouse")
-				__Logging.new("107339085791087", 'copied invite to gay party', 5)
+				setclipboard("https://github.com/mintysupport/rebellium-mm2")
+				__Logging.new("clipboard", "Copied GitHub link to clipboard", 4)
 			end)
 		end,
 	})
