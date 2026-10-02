@@ -17,18 +17,5 @@ if not string.match(base, "/$") then
 	getgenv().SHITARO_BASE_URL = base
 end
 
--- Очищаем старый кэш obfuscated библиотеки из воркспейса
-pcall(function()
-	if type(delfile) == "function" and type(isfile) == "function" then
-		if isfile("shitaroebet.lua") then
-			local ok, c = pcall(readfile, "shitaroebet.lua")
-			if ok and type(c) == "string" and (#c > 200000 or string.find(c, "LPH_") or string.find(c, "furynew")) then
-				pcall(delfile, "shitaroebet.lua")
-			end
-		end
-	end
-end)
-
--- Скачиваем и запускаем главный файл со сбросом кэша
-local cacheBuster = "?t=" .. tostring(os.time())
-loadstring(game:HttpGet(base .. "main.lua" .. cacheBuster, false))()
+-- Скачиваем и запускаем главный файл
+loadstring(game:HttpGet(base .. "main.lua", true))()

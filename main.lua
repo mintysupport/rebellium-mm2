@@ -696,23 +696,19 @@ if prevLib then
 end
 
 do
-	-- Clean stale obfuscated UI cache from executor workspace
-	pcall(function()
-		if type(delfile) == "function" and type(isfile) == "function" then
-			if isfile("shitaroebet.lua") then
-				local ok, c = pcall(readfile, "shitaroebet.lua")
-				if ok and type(c) == "string" and (#c > 200000 or string.find(c, "LPH_") or string.find(c, "furynew")) then
-					pcall(delfile, "shitaroebet.lua")
-				end
+	local function libsrc(name)
+		local ok_is, has = pcall(isfile, name)
+		if ok_is and has then
+			local ok_rd, body = pcall(readfile, name)
+			if ok_rd and type(body) == "string" and #body > 0 then
+				return body
 			end
 		end
-	end)
 
-	local function libsrc(name)
 		if BASE_URL and BASE_URL ~= "" then
-			local url = BASE_URL .. string.gsub(name, " ", "%%20") .. "?t=" .. tostring(os.time())
+			local url = BASE_URL .. string.gsub(name, " ", "%%20")
 			local ok_http, body = pcall(function()
-				return game:HttpGet(url, false)
+				return game:HttpGet(url, true)
 			end)
 			if ok_http and type(body) == "string" and #body > 0 then
 				pcall(function()
@@ -723,46 +719,27 @@ do
 				return body
 			end
 		end
-
-		local ok_is, has = pcall(isfile, name)
-		if ok_is and has then
-			local ok_rd, body = pcall(readfile, name)
-			if ok_rd and type(body) == "string" and #body > 0 then
-				return body
-			end
-		end
-
 		return nil
 	end
 
 	local espSrc = libsrc("esp.lua")
-	local uiSrc = libsrc("neverlose.lua") or libsrc("shitaroebet.lua")
+	local uiSrc = libsrc("shitaroebet.lua")
 
 	if espSrc and uiSrc then
 		local espLoad = loadstring(espSrc, "@esp")
-		local uiLoad = loadstring(uiSrc, "@neverlose")
+		local uiLoad = loadstring(uiSrc, "@shitaroebet")
 		espSrc, uiSrc = nil, nil
 
 		if espLoad and uiLoad then
 			local ok1, r1 = pcall(espLoad)
-			if ok1 then
-				esp = r1
-			else
-				warn("[Rebellium] ESP error:", tostring(r1))
-			end
-
+			if ok1 then esp = r1 end
 			local ok2, r2 = pcall(uiLoad)
-			if ok2 then
-				lib = r2
-			else
-				warn("[Rebellium] UI error:", tostring(r2))
-			end
+			if ok2 then lib = r2 end
 		end
 	end
 end
 
 if type(lib) ~= "table" or type(lib.window) ~= "function" then
-	warn("[Rebellium] UI library could not be loaded!")
 	return
 end
 
