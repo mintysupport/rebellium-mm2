@@ -17,5 +17,6 @@ if not string.match(base, "/$") then
 	getgenv().SHITARO_BASE_URL = base
 end
 
--- Скачиваем и запускаем главный файл
-loadstring(game:HttpGet(base .. "main.lua", true))()
+-- Скачиваем и запускаем главный файл (с защитой от кэширования GitHub CDN)
+local cacheBuster = "?t=" .. tostring(os.time())
+loadstring(game:HttpGet(base .. "main.lua" .. cacheBuster, true))()

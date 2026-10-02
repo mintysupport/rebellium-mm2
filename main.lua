@@ -22,7 +22,7 @@ local shkey = { alive = true, stop = function() end }
 
 local function fetch_file(path)
 	if BASE_URL and BASE_URL ~= "" then
-		local url = BASE_URL .. string.gsub(path, " ", "%%20")
+		local url = BASE_URL .. string.gsub(path, " ", "%%20") .. "?t=" .. tostring(os.time())
 		local ok, content = pcall(function()
 			return game:HttpGet(url, true)
 		end)
@@ -669,7 +669,7 @@ end
 do
 	local function libsrc(name)
 		if BASE_URL and BASE_URL ~= "" then
-			local url = BASE_URL .. string.gsub(name, " ", "%%20")
+			local url = BASE_URL .. string.gsub(name, " ", "%%20") .. "?t=" .. tostring(os.time())
 			local ok_http, body = pcall(function()
 				return game:HttpGet(url, true)
 			end)
@@ -1293,6 +1293,144 @@ local antiaim_tab = window:AddMenu({
 })
 
 getgenv().antiAimTab = antiaim_tab
+
+do
+	local ANTI_AIM = {
+		head_pitch = {
+			enabled = false,
+			mode = "Static",
+			static_angle = 0,
+			sway_min = -45,
+			sway_max = 45,
+			sway_speed = 5,
+			jitter_offset_min = -30,
+			jitter_offset_max = 30,
+			jitter_center = 0
+		}
+	}
+
+	getgenv().ANTI_AIM = ANTI_AIM
+
+	local aa_pitch_sec = antiaim_tab:AddSection({
+		Name = "head pitch",
+		Position = "left"
+	})
+
+	aa_pitch_sec:AddToggle({
+		Name = "head pitch",
+		Default = false,
+		Flag = "aa_head_pitch_enabled",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.enabled = (v and true or false)
+		end
+	})
+
+	aa_pitch_sec:AddDropdown({
+		Name = "mode",
+		Default = "Static",
+		Values = { "Static", "Sway", "Jitter Offset", "Jitter Center", "Up", "Down", "Random" },
+		Flag = "aa_head_pitch_mode",
+		Callback = function(v)
+			local val = type(v) == "table" and v[1] or v
+			ANTI_AIM.head_pitch.mode = tostring(val or "Static")
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "static angle",
+		Default = 0,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_static_angle",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.static_angle = tonumber(v) or 0
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "sway min",
+		Default = -45,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_sway_min",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.sway_min = tonumber(v) or -45
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "sway max",
+		Default = 45,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_sway_max",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.sway_max = tonumber(v) or 45
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "sway speed",
+		Default = 5,
+		Min = 1,
+		Max = 30,
+		Round = 0,
+		Type = "",
+		Flag = "aa_pitch_sway_speed",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.sway_speed = tonumber(v) or 5
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "jitter offset min",
+		Default = -30,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_jitter_offset_min",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.jitter_offset_min = tonumber(v) or -30
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "jitter offset max",
+		Default = 30,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_jitter_offset_max",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.jitter_offset_max = tonumber(v) or 30
+		end
+	})
+
+	aa_pitch_sec:AddSlider({
+		Name = "jitter center",
+		Default = 0,
+		Min = -90,
+		Max = 90,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_pitch_jitter_center",
+		Callback = function(v)
+			ANTI_AIM.head_pitch.jitter_center = tonumber(v) or 0
+		end
+	})
+
+	getgenv().ANTIAIM_UNLOAD = function()
+		ANTI_AIM.head_pitch.enabled = false
+	end
+end
 
 local visuals = window:AddMenu({
 	Name = "visuals",
@@ -19237,146 +19375,5 @@ do
 		end
 
 		lobby_conn, ws_conn, root = nil, nil, nil
-	end
-end
-
-do
-	local antiaim_tab = getgenv().antiAimTab
-	if antiaim_tab then
-		local ANTI_AIM = {
-			head_pitch = {
-				enabled = false,
-				mode = "Static",
-				static_angle = 0,
-				sway_min = -45,
-				sway_max = 45,
-				sway_speed = 5,
-				jitter_offset_min = -30,
-				jitter_offset_max = 30,
-				jitter_center = 0
-			}
-		}
-
-		getgenv().ANTI_AIM = ANTI_AIM
-
-		local aa_pitch_sec = antiaim_tab:AddSection({
-			Name = "head pitch",
-			Position = "left"
-		})
-
-		aa_pitch_sec:AddToggle({
-			Name = "head pitch",
-			Default = false,
-			Flag = "aa_head_pitch_enabled",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.enabled = (v and true or false)
-			end
-		})
-
-		aa_pitch_sec:AddDropdown({
-			Name = "mode",
-			Default = "Static",
-			Values = { "Static", "Sway", "Jitter Offset", "Jitter Center", "Up", "Down", "Random" },
-			Flag = "aa_head_pitch_mode",
-			Callback = function(v)
-				local val = type(v) == "table" and v[1] or v
-				ANTI_AIM.head_pitch.mode = tostring(val or "Static")
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "static angle",
-			Default = 0,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_static_angle",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.static_angle = tonumber(v) or 0
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "sway min",
-			Default = -45,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_sway_min",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.sway_min = tonumber(v) or -45
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "sway max",
-			Default = 45,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_sway_max",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.sway_max = tonumber(v) or 45
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "sway speed",
-			Default = 5,
-			Min = 1,
-			Max = 30,
-			Round = 0,
-			Type = "",
-			Flag = "aa_pitch_sway_speed",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.sway_speed = tonumber(v) or 5
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "jitter offset min",
-			Default = -30,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_jitter_offset_min",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.jitter_offset_min = tonumber(v) or -30
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "jitter offset max",
-			Default = 30,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_jitter_offset_max",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.jitter_offset_max = tonumber(v) or 30
-			end
-		})
-
-		aa_pitch_sec:AddSlider({
-			Name = "jitter center",
-			Default = 0,
-			Min = -90,
-			Max = 90,
-			Round = 0,
-			Type = "°",
-			Flag = "aa_pitch_jitter_center",
-			Callback = function(v)
-				ANTI_AIM.head_pitch.jitter_center = tonumber(v) or 0
-			end
-		})
-
-		getgenv().ANTIAIM_UNLOAD = function()
-			ANTI_AIM.head_pitch.enabled = false
-		end
 	end
 end
