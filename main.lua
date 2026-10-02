@@ -1311,6 +1311,64 @@ do
 
 	getgenv().ANTI_AIM = ANTI_AIM
 
+	local function resolve_row_frame(inst)
+		if not (typeof(inst) == "Instance" and inst:IsA("GuiObject")) then return nil end
+		local curr = inst
+		while curr.Parent and curr.Parent:IsA("GuiObject") do
+			local p = curr.Parent
+			if p:FindFirstChildOfClass("UIListLayout") or p:FindFirstChildOfClass("UIGridLayout") then
+				return curr
+			end
+			curr = p
+		end
+		return inst
+	end
+
+	local function set_ui_visible(item, visible)
+		if not item then return end
+		local el = (type(item) == "table" and item.__el) and item.__el or item
+		if type(el) == "table" then
+			if type(el.setvisible) == "function" then
+				pcall(function() el:setvisible(visible) end)
+			end
+			if type(el.visible) == "function" then
+				pcall(function() el:visible(visible) end)
+			end
+			if type(el.SetVisible) == "function" then
+				pcall(function() el:SetVisible(visible) end)
+			end
+
+			local found = {}
+			local function checkInst(v)
+				if typeof(v) == "Instance" and v:IsA("GuiObject") then
+					table.insert(found, v)
+				end
+			end
+
+			local knownKeys = { "frame", "holder", "root", "main", "container", "object", "item", "base", "slider", "instance", "gui" }
+			for _, k in ipairs(knownKeys) do
+				checkInst(el[k])
+			end
+			for _, v in pairs(el) do
+				checkInst(v)
+			end
+
+			local touched = {}
+			for _, inst in ipairs(found) do
+				local row = resolve_row_frame(inst)
+				if row and not touched[row] then
+					touched[row] = true
+					pcall(function() row.Visible = visible end)
+				end
+				pcall(function() inst.Visible = visible end)
+			end
+		elseif typeof(el) == "Instance" and el:IsA("GuiObject") then
+			local row = resolve_row_frame(el)
+			if row then pcall(function() row.Visible = visible end) end
+			pcall(function() el.Visible = visible end)
+		end
+	end
+
 	local aa_pitch_sec = antiaim_tab:AddSection({
 		Name = "head pitch",
 		Position = "left"
@@ -1325,18 +1383,47 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddDropdown({
+	local slider_static, slider_sway_min, slider_sway_max, slider_sway_speed
+	local slider_jitter_offset_min, slider_jitter_offset_max, slider_jitter_center
+
+	local function update_sliders_visibility(mode)
+		local m = string.lower(tostring(mode or "static"))
+
+		local isStatic = (m == "static")
+		local isSway = (m == "sway")
+		local isJitterOffset = (string.find(m, "offset") ~= nil) or (m == "jitter offset")
+		local isJitterCenter = (string.find(m, "center") ~= nil) or (m == "jitter center")
+
+		-- Static: only static angle slider
+		set_ui_visible(slider_static, isStatic)
+
+		-- Sway: 2 sliders min/max + speed
+		set_ui_visible(slider_sway_min, isSway)
+		set_ui_visible(slider_sway_max, isSway)
+		set_ui_visible(slider_sway_speed, isSway)
+
+		-- Jitter Offset: 2 sliders min/max
+		set_ui_visible(slider_jitter_offset_min, isJitterOffset)
+		set_ui_visible(slider_jitter_offset_max, isJitterOffset)
+
+		-- Jitter Center: 1 slider center
+		set_ui_visible(slider_jitter_center, isJitterCenter)
+	end
+
+	local mode_dd = aa_pitch_sec:AddDropdown({
 		Name = "mode",
 		Default = "Static",
 		Values = { "Static", "Sway", "Jitter Offset", "Jitter Center", "Up", "Down", "Random" },
 		Flag = "aa_head_pitch_mode",
 		Callback = function(v)
 			local val = type(v) == "table" and v[1] or v
-			ANTI_AIM.head_pitch.mode = tostring(val or "Static")
+			local modeStr = tostring(val or "Static")
+			ANTI_AIM.head_pitch.mode = modeStr
+			update_sliders_visibility(modeStr)
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_static = aa_pitch_sec:AddSlider({
 		Name = "static angle",
 		Default = 0,
 		Min = -90,
@@ -1349,7 +1436,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_sway_min = aa_pitch_sec:AddSlider({
 		Name = "sway min",
 		Default = -45,
 		Min = -90,
@@ -1362,7 +1449,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_sway_max = aa_pitch_sec:AddSlider({
 		Name = "sway max",
 		Default = 45,
 		Min = -90,
@@ -1375,7 +1462,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_sway_speed = aa_pitch_sec:AddSlider({
 		Name = "sway speed",
 		Default = 5,
 		Min = 1,
@@ -1388,7 +1475,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_jitter_offset_min = aa_pitch_sec:AddSlider({
 		Name = "jitter offset min",
 		Default = -30,
 		Min = -90,
@@ -1401,7 +1488,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_jitter_offset_max = aa_pitch_sec:AddSlider({
 		Name = "jitter offset max",
 		Default = 30,
 		Min = -90,
@@ -1414,7 +1501,7 @@ do
 		end
 	})
 
-	aa_pitch_sec:AddSlider({
+	slider_jitter_center = aa_pitch_sec:AddSlider({
 		Name = "jitter center",
 		Default = 0,
 		Min = -90,
@@ -1426,6 +1513,11 @@ do
 			ANTI_AIM.head_pitch.jitter_center = tonumber(v) or 0
 		end
 	})
+
+	task.defer(function()
+		task.wait(0.05)
+		update_sliders_visibility(ANTI_AIM.head_pitch.mode)
+	end)
 
 	getgenv().ANTIAIM_UNLOAD = function()
 		ANTI_AIM.head_pitch.enabled = false
