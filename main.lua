@@ -1311,6 +1311,8 @@ do
 
 	getgenv().ANTI_AIM = ANTI_AIM
 
+	local reset_motors = nil
+
 	local function resolve_row_frame(inst)
 		if not (typeof(inst) == "Instance" and inst:IsA("GuiObject")) then return nil end
 		local curr = inst
@@ -1380,6 +1382,9 @@ do
 		Flag = "aa_head_pitch_enabled",
 		Callback = function(v)
 			ANTI_AIM.head_pitch.enabled = (v and true or false)
+			if not v and reset_motors then
+				reset_motors()
+			end
 		end
 	})
 
@@ -1517,37 +1522,46 @@ do
 	local lp = game:GetService("Players").LocalPlayer
 	local run = game:GetService("RunService")
 
-	local orig_neck_c0 = nil
-	local current_neck = nil
+	local neck_orig_pos = nil
+	local waist_orig_pos = nil
+	local r6_orig_c0 = nil
+	local last_char = nil
 	local jitter_state = false
 	local pitch_conn = nil
 
-	local function find_neck(char)
+	local function find_motor(char, name)
 		if not char then return nil end
-		local head = char:FindFirstChild("Head")
-		local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-		if torso then
-			local n = torso:FindFirstChild("Neck")
-			if n and n:IsA("Motor6D") then return n end
-		end
-		if head then
-			local n = head:FindFirstChild("Neck")
-			if n and n:IsA("Motor6D") then return n end
-		end
 		for _, desc in ipairs(char:GetDescendants()) do
-			if desc:IsA("Motor6D") and (desc.Name == "Neck" or (desc.Part1 and desc.Part1.Name == "Head")) then
+			if desc:IsA("Motor6D") and desc.Name == name then
 				return desc
 			end
 		end
 		return nil
 	end
 
-	local function reset_neck()
-		if current_neck and orig_neck_c0 then
-			pcall(function()
-				current_neck.C0 = orig_neck_c0
-			end)
-		end
+	reset_motors = function(char)
+		char = char or lp.Character
+		if not char then return end
+		local is_r15 = (char:FindFirstChild("UpperTorso") ~= nil) or (char:FindFirstChild("LowerTorso") ~= nil)
+		local neck = find_motor(char, "Neck")
+		local waist = find_motor(char, "Waist")
+
+		pcall(function()
+			if is_r15 then
+				if neck and neck_orig_pos then
+					neck.C0 = CFrame.new(neck_orig_pos)
+				end
+				if waist and waist_orig_pos then
+					waist.C0 = CFrame.new(waist_orig_pos)
+				end
+			else
+				if neck and r6_orig_c0 then
+					neck.C0 = r6_orig_c0
+				elseif neck then
+					neck.C0 = CFrame.new(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0)
+				end
+			end
+		end)
 	end
 
 	local function calculate_pitch()
@@ -1594,32 +1608,50 @@ do
 		local char = lp.Character
 		if not char then return end
 
-		local neck = find_neck(char)
-		if neck ~= current_neck then
-			reset_neck()
-			current_neck = neck
-			if neck then
-				orig_neck_c0 = neck.C0
-			end
+		if char ~= last_char then
+			reset_motors(last_char)
+			last_char = char
+			neck_orig_pos = nil
+			waist_orig_pos = nil
+			r6_orig_c0 = nil
 		end
 
-		if not (current_neck and orig_neck_c0) then return end
+		local is_r15 = (char:FindFirstChild("UpperTorso") ~= nil) or (char:FindFirstChild("LowerTorso") ~= nil)
+		local neck = find_motor(char, "Neck")
+		local waist = find_motor(char, "Waist")
 
 		local pitch_rad = calculate_pitch()
+
 		pcall(function()
-			current_neck.C0 = orig_neck_c0 * CFrame.Angles(pitch_rad, 0, 0)
+			if is_r15 then
+				if neck then
+					if not neck_orig_pos then neck_orig_pos = neck.C0.Position end
+					if waist then
+						if not waist_orig_pos then waist_orig_pos = waist.C0.Position end
+						local halfRot = CFrame.Angles(pitch_rad * 0.5, 0, 0)
+						neck.C0 = CFrame.new(neck_orig_pos) * halfRot
+						waist.C0 = CFrame.new(waist_orig_pos) * halfRot
+					else
+						local fullRot = CFrame.Angles(pitch_rad, 0, 0)
+						neck.C0 = CFrame.new(neck_orig_pos) * fullRot
+					end
+				end
+			else
+				-- R6 rig
+				if neck then
+					if not r6_orig_c0 then r6_orig_c0 = neck.C0 end
+					neck.C0 = CFrame.new(0, 1, 0) * CFrame.Angles(math.rad(-90) + pitch_rad, math.rad(180), 0)
+				end
+			end
 		end)
 	end)
 
 	lp.CharacterAdded:Connect(function(newChar)
-		current_neck = nil
-		orig_neck_c0 = nil
-		task.wait(0.2)
-		local neck = find_neck(newChar)
-		if neck then
-			current_neck = neck
-			orig_neck_c0 = neck.C0
-		end
+		reset_motors()
+		last_char = newChar
+		neck_orig_pos = nil
+		waist_orig_pos = nil
+		r6_orig_c0 = nil
 	end)
 
 	task.defer(function()
@@ -1633,7 +1665,7 @@ do
 			pcall(function() pitch_conn:Disconnect() end)
 			pitch_conn = nil
 		end
-		reset_neck()
+		reset_motors()
 	end
 end
 
