@@ -1306,6 +1306,18 @@ do
 			jitter_offset_min = -30,
 			jitter_offset_max = 30,
 			jitter_center = 0
+		},
+		body_yaw = {
+			enabled = false,
+			mode = "Spin",
+			spin_speed = 15,
+			jitter_angle = 90,
+			jitter_speed = 12,
+			sway_angle = 60,
+			sway_speed = 6,
+			offset_angle = 180,
+			disable_on_move = false,
+			inverted = false
 		}
 	}
 
@@ -1519,6 +1531,165 @@ do
 		end
 	})
 
+	local reset_yaw = nil
+
+	local aa_yaw_sec = antiaim_tab:AddSection({
+		Name = "yaw anti aim",
+		Position = "right"
+	})
+
+	aa_yaw_sec:AddToggle({
+		Name = "body yaw",
+		Default = false,
+		Flag = "aa_body_yaw_enabled",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.enabled = (v and true or false)
+			if not v and reset_yaw then
+				reset_yaw()
+			end
+		end
+	})
+
+	local slider_spin_speed, slider_jitter_angle, slider_jitter_speed
+	local slider_sway_angle, slider_sway_speed, slider_offset_angle
+
+	local function update_yaw_sliders_visibility(mode)
+		local m = string.lower(tostring(mode or "spin"))
+
+		local isSpin = (m == "spin")
+		local isJitter = (m == "jitter")
+		local isSway = (m == "sway")
+		local isOffset = (string.find(m, "offset") ~= nil)
+
+		set_ui_visible(slider_spin_speed, isSpin)
+
+		set_ui_visible(slider_jitter_angle, isJitter)
+		set_ui_visible(slider_jitter_speed, isJitter)
+
+		set_ui_visible(slider_sway_angle, isSway)
+		set_ui_visible(slider_sway_speed, isSway)
+
+		set_ui_visible(slider_offset_angle, isOffset)
+	end
+
+	local yaw_mode_dd = aa_yaw_sec:AddDropdown({
+		Name = "mode",
+		Default = "Spin",
+		Values = { "Spin", "Backwards", "Jitter", "Sway", "Static Offset", "Random" },
+		Flag = "aa_body_yaw_mode",
+		Callback = function(v)
+			local val = type(v) == "table" and v[1] or v
+			local modeStr = tostring(val or "Spin")
+			ANTI_AIM.body_yaw.mode = modeStr
+			update_yaw_sliders_visibility(modeStr)
+		end
+	})
+
+	slider_spin_speed = aa_yaw_sec:AddSlider({
+		Name = "spin speed",
+		Default = 15,
+		Min = 1,
+		Max = 50,
+		Round = 0,
+		Type = "",
+		Flag = "aa_yaw_spin_speed",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.spin_speed = tonumber(v) or 15
+		end
+	})
+
+	slider_jitter_angle = aa_yaw_sec:AddSlider({
+		Name = "jitter angle",
+		Default = 90,
+		Min = 10,
+		Max = 180,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_yaw_jitter_angle",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.jitter_angle = tonumber(v) or 90
+		end
+	})
+
+	slider_jitter_speed = aa_yaw_sec:AddSlider({
+		Name = "jitter speed",
+		Default = 12,
+		Min = 1,
+		Max = 30,
+		Round = 0,
+		Type = "",
+		Flag = "aa_yaw_jitter_speed",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.jitter_speed = tonumber(v) or 12
+		end
+	})
+
+	slider_sway_angle = aa_yaw_sec:AddSlider({
+		Name = "sway angle",
+		Default = 60,
+		Min = 10,
+		Max = 180,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_yaw_sway_angle",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.sway_angle = tonumber(v) or 60
+		end
+	})
+
+	slider_sway_speed = aa_yaw_sec:AddSlider({
+		Name = "sway speed",
+		Default = 6,
+		Min = 1,
+		Max = 30,
+		Round = 0,
+		Type = "",
+		Flag = "aa_yaw_sway_speed",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.sway_speed = tonumber(v) or 6
+		end
+	})
+
+	slider_offset_angle = aa_yaw_sec:AddSlider({
+		Name = "offset angle",
+		Default = 180,
+		Min = -180,
+		Max = 180,
+		Round = 0,
+		Type = "°",
+		Flag = "aa_yaw_offset_angle",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.offset_angle = tonumber(v) or 180
+		end
+	})
+
+	aa_yaw_sec:AddToggle({
+		Name = "disable on move",
+		Default = false,
+		Flag = "aa_yaw_disable_on_move",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.disable_on_move = (v and true or false)
+		end
+	})
+
+	aa_yaw_sec:AddToggle({
+		Name = "inverter",
+		Default = false,
+		Flag = "aa_yaw_inverter",
+		Callback = function(v)
+			ANTI_AIM.body_yaw.inverted = (v and true or false)
+		end
+	})
+
+	aa_yaw_sec:AddKeybind({
+		Name = "invert keybind",
+		Default = Enum.KeyCode.V,
+		Flag = "aa_yaw_invert_key",
+		Callback = function()
+			ANTI_AIM.body_yaw.inverted = not ANTI_AIM.body_yaw.inverted
+		end
+	})
+
 	local lp = game:GetService("Players").LocalPlayer
 	local run = game:GetService("RunService")
 
@@ -1528,6 +1699,11 @@ do
 	local last_char = nil
 	local jitter_state = false
 	local pitch_conn = nil
+
+	local spin_angle = 0
+	local jitter_yaw_flip = false
+	local last_jitter_time = 0
+	local yaw_conn = nil
 
 	local function find_motor(char, name)
 		if not char then return nil end
@@ -1562,6 +1738,16 @@ do
 				end
 			end
 		end)
+	end
+
+	reset_yaw = function()
+		local char = lp.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			pcall(function()
+				hum.AutoRotate = true
+			end)
+		end
 	end
 
 	local function calculate_pitch()
@@ -1599,6 +1785,41 @@ do
 		end
 
 		return math.rad(deg)
+	end
+
+	local function calculate_yaw_angle(camYaw, dt)
+		local mode = string.lower(tostring(ANTI_AIM.body_yaw.mode or "spin"))
+		local inverted = ANTI_AIM.body_yaw.inverted and math.pi or 0
+
+		if mode == "spin" then
+			local spd = (tonumber(ANTI_AIM.body_yaw.spin_speed) or 15) * 20
+			spin_angle = (spin_angle + dt * spd) % 360
+			return math.rad(spin_angle) + inverted
+		elseif mode == "backwards" then
+			return camYaw + math.pi + inverted
+		elseif string.find(mode, "offset") ~= nil then
+			local off = tonumber(ANTI_AIM.body_yaw.offset_angle) or 180
+			return camYaw + math.rad(off) + inverted
+		elseif mode == "jitter" then
+			local jAngle = tonumber(ANTI_AIM.body_yaw.jitter_angle) or 90
+			local jSpeed = tonumber(ANTI_AIM.body_yaw.jitter_speed) or 12
+			local interval = 1 / math.clamp(jSpeed, 1, 30)
+			if tick() - last_jitter_time >= interval then
+				jitter_yaw_flip = not jitter_yaw_flip
+				last_jitter_time = tick()
+			end
+			local offset = jitter_yaw_flip and math.rad(jAngle) or -math.rad(jAngle)
+			return camYaw + offset + inverted
+		elseif mode == "sway" then
+			local sAngle = tonumber(ANTI_AIM.body_yaw.sway_angle) or 60
+			local sSpeed = (tonumber(ANTI_AIM.body_yaw.sway_speed) or 6) * 0.8
+			local swayOffset = math.sin(tick() * sSpeed) * math.rad(sAngle)
+			return camYaw + swayOffset + inverted
+		elseif mode == "random" then
+			return math.rad(math.random(-180, 180)) + inverted
+		end
+
+		return camYaw + math.pi + inverted
 	end
 
 	pitch_conn = run.RenderStepped:Connect(function()
@@ -1646,8 +1867,41 @@ do
 		end)
 	end)
 
+	yaw_conn = run.RenderStepped:Connect(function(dt)
+		local ycfg = ANTI_AIM.body_yaw
+		if not (ycfg and ycfg.enabled) then return end
+
+		local char = lp.Character
+		if not char then return end
+
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if not (hrp and hum and hum.Health > 0) then return end
+
+		if ycfg.disable_on_move then
+			local vel = hrp.AssemblyLinearVelocity
+			local horizVel = Vector3.new(vel.X, 0, vel.Z).Magnitude
+			if horizVel > 1.5 then
+				hum.AutoRotate = true
+				return
+			end
+		end
+
+		hum.AutoRotate = false
+
+		local cam = workspace.CurrentCamera
+		local camCF = cam and cam.CFrame or CFrame.new()
+		local _, camYaw, _ = camCF:ToOrientation()
+
+		local finalYaw = calculate_yaw_angle(camYaw, dt)
+		local currentPos = hrp.Position
+
+		hrp.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, finalYaw, 0)
+	end)
+
 	lp.CharacterAdded:Connect(function(newChar)
 		reset_motors()
+		reset_yaw()
 		last_char = newChar
 		neck_orig_pos = nil
 		waist_orig_pos = nil
@@ -1657,15 +1911,22 @@ do
 	task.defer(function()
 		task.wait(0.05)
 		update_sliders_visibility(ANTI_AIM.head_pitch.mode)
+		update_yaw_sliders_visibility(ANTI_AIM.body_yaw.mode)
 	end)
 
 	getgenv().ANTIAIM_UNLOAD = function()
 		ANTI_AIM.head_pitch.enabled = false
+		ANTI_AIM.body_yaw.enabled = false
 		if pitch_conn then
 			pcall(function() pitch_conn:Disconnect() end)
 			pitch_conn = nil
 		end
+		if yaw_conn then
+			pcall(function() yaw_conn:Disconnect() end)
+			yaw_conn = nil
+		end
 		reset_motors()
+		reset_yaw()
 	end
 end
 
