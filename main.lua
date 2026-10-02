@@ -1514,6 +1514,114 @@ do
 		end
 	})
 
+	local lp = game:GetService("Players").LocalPlayer
+	local run = game:GetService("RunService")
+
+	local orig_neck_c0 = nil
+	local current_neck = nil
+	local jitter_state = false
+	local pitch_conn = nil
+
+	local function find_neck(char)
+		if not char then return nil end
+		local head = char:FindFirstChild("Head")
+		local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+		if torso then
+			local n = torso:FindFirstChild("Neck")
+			if n and n:IsA("Motor6D") then return n end
+		end
+		if head then
+			local n = head:FindFirstChild("Neck")
+			if n and n:IsA("Motor6D") then return n end
+		end
+		for _, desc in ipairs(char:GetDescendants()) do
+			if desc:IsA("Motor6D") and (desc.Name == "Neck" or (desc.Part1 and desc.Part1.Name == "Head")) then
+				return desc
+			end
+		end
+		return nil
+	end
+
+	local function reset_neck()
+		if current_neck and orig_neck_c0 then
+			pcall(function()
+				current_neck.C0 = orig_neck_c0
+			end)
+		end
+	end
+
+	local function calculate_pitch()
+		local mode = string.lower(tostring(ANTI_AIM.head_pitch.mode or "static"))
+		local deg = 0
+
+		if mode == "static" then
+			deg = ANTI_AIM.head_pitch.static_angle or 0
+		elseif mode == "up" then
+			deg = -89
+		elseif mode == "down" then
+			deg = 89
+		elseif mode == "random" then
+			deg = math.random(-89, 89)
+		elseif mode == "sway" then
+			local smin = ANTI_AIM.head_pitch.sway_min or -45
+			local smax = ANTI_AIM.head_pitch.sway_max or 45
+			local low = math.min(smin, smax)
+			local high = math.max(smin, smax)
+			local spd = math.clamp(ANTI_AIM.head_pitch.sway_speed or 5, 1, 30) * 0.4
+			local alpha = (math.sin(tick() * spd) + 1) * 0.5
+			deg = low + (high - low) * alpha
+		elseif string.find(mode, "offset") ~= nil then
+			local jmin = ANTI_AIM.head_pitch.jitter_offset_min or -30
+			local jmax = ANTI_AIM.head_pitch.jitter_offset_max or 30
+			jitter_state = not jitter_state
+			deg = jitter_state and jmin or jmax
+		elseif string.find(mode, "center") ~= nil then
+			local center = ANTI_AIM.head_pitch.jitter_center or 0
+			jitter_state = not jitter_state
+			local delta = jitter_state and 30 or -30
+			deg = math.clamp(center + delta, -89, 89)
+		else
+			deg = ANTI_AIM.head_pitch.static_angle or 0
+		end
+
+		return math.rad(deg)
+	end
+
+	pitch_conn = run.RenderStepped:Connect(function()
+		local cfg = ANTI_AIM.head_pitch
+		if not cfg or not cfg.enabled then return end
+
+		local char = lp.Character
+		if not char then return end
+
+		local neck = find_neck(char)
+		if neck ~= current_neck then
+			reset_neck()
+			current_neck = neck
+			if neck then
+				orig_neck_c0 = neck.C0
+			end
+		end
+
+		if not (current_neck and orig_neck_c0) then return end
+
+		local pitch_rad = calculate_pitch()
+		pcall(function()
+			current_neck.C0 = orig_neck_c0 * CFrame.Angles(pitch_rad, 0, 0)
+		end)
+	end)
+
+	lp.CharacterAdded:Connect(function(newChar)
+		current_neck = nil
+		orig_neck_c0 = nil
+		task.wait(0.2)
+		local neck = find_neck(newChar)
+		if neck then
+			current_neck = neck
+			orig_neck_c0 = neck.C0
+		end
+	end)
+
 	task.defer(function()
 		task.wait(0.05)
 		update_sliders_visibility(ANTI_AIM.head_pitch.mode)
@@ -1521,6 +1629,11 @@ do
 
 	getgenv().ANTIAIM_UNLOAD = function()
 		ANTI_AIM.head_pitch.enabled = false
+		if pitch_conn then
+			pcall(function() pitch_conn:Disconnect() end)
+			pitch_conn = nil
+		end
+		reset_neck()
 	end
 end
 
