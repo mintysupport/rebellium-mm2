@@ -1314,6 +1314,15 @@ local game_tab = window:AddMenu({
 	AutoFill = false
 })
 
+local antiaim_tab = window:AddMenu({
+	Name = "anti aim",
+	Icon = "shield",
+	Tip = "anti aim func",
+	AutoFill = false
+})
+
+getgenv().antiAimTab = antiaim_tab
+
 local visuals = window:AddMenu({
 	Name = "visuals",
 	Tip = "players visuals",
